@@ -128,7 +128,7 @@ t.getUser().getName(); // ❌ LazyInitializationException
 </details>
 
 <details>
-<summary><strong>ModelMapperConfig</strong></summary>
+<summary><strong>💡ModelMapperConfig</strong></summary>
 
 ```java
 
@@ -205,13 +205,13 @@ Un DTO sirve para transferir datos de manera segura, específica y eficiente ent
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    @Query("SELECT t FROM Transaction t " +
+    @Query("SELECT t FROM TransactionDTO t " +
             "WHERE YEAR(t.createdAt) = :year AND MONTH(t.createdAt) = :month")
     List<Transaction> findAllByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
 
-    //we are searching these field; Transaction's description, note, status, Product's name, sku
-    @Query("SELECT t FROM Transaction t " +
+    //we are searching these field; TransactionDTO's description, note, status, ProductDTO's name, sku
+    @Query("SELECT t FROM TransactionDTO t " +
             "LEFT JOIN t.product p " +
             "WHERE (:searchText IS NULL OR " +
             "LOWER(t.description) LIKE LOWER(CONCAT('%', :searchText, '%')) OR " +
@@ -235,7 +235,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>
 
 ## 🗓️ **Método 1: Buscar por Mes y Año**
 ```java
-@Query("SELECT t FROM Transaction t " +
+@Query("SELECT t FROM TransactionDTO t " +
         "WHERE YEAR(t.createdAt) = :year AND MONTH(t.createdAt) = :month")
 List<Transaction> findAllByMonthAndYear(@Param("month") int month, @Param("year") int year);
 ```
@@ -250,10 +250,46 @@ List<Transaction> findAllByMonthAndYear(@Param("month") int month, @Param("year"
 // Buscar transacciones de enero 2025
 List<Transaction> transactions = repo.findAllByMonthAndYear(1, 2025);
 ```
+## EN CONTEXTO DE SQL SERIA ASI :
+Claro. La consulta JPQL que diste se puede transformar a SQL estándar así:
+
+```sql
+SELECT * FROM transaction
+WHERE YEAR(created_at) = :year AND MONTH(created_at) = :month;
+```
+
+- `transaction` es el nombre de la tabla.
+- `created_at` es el campo de fecha (ajusta el nombre si es diferente en tu base de datos).
+- `:year` y `:month` son parámetros que debes reemplazar por los valores deseados.
+
+## PORSICASO EN SQL NO ES VALIDO EL " = : "
+No, en SQL estándar no puedes usar `:year` y `:month` directamente.  
+Los dos puntos (`:`) indican **parámetros nombrados** y solo son válidos en JPQL/HQL o 
+frameworks como JPA/Hibernate.
+
+En SQL puro, debes reemplazar esos parámetros por valores concretos o usar `?` 
+para parámetros posicionales (en JDBC):
+
+```sql
+SELECT * FROM transaction
+WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?;
+```
+
+O reemplazar manualmente:
+
+```sql
+SELECT * FROM transaction
+WHERE YEAR(created_at) = 2025 AND MONTH(created_at) = 6;
+```
+
+**Resumen:**  
+`:year` y `:month` no son válidos en SQL puro, solo en consultas parametrizadas de frameworks.
+
+---
 
 ## 🔍 **Método 2: Búsqueda Avanzada con Paginación**
 ```java
-@Query("SELECT t FROM Transaction t " +
+@Query("SELECT t FROM TransactionDTO t " +
         "LEFT JOIN t.product p " +
         "WHERE (:searchText IS NULL OR " +
         "LOWER(t.description) LIKE LOWER(CONCAT('%', :searchText, '%')) OR " +
@@ -310,5 +346,202 @@ List<Transaction> octubre2025 = repo.findAllByMonthAndYear(10, 2025);
 - 🔍 **Búsqueda potente** en múltiples campos
 - 📊 **Ideal para reportes** y **filtros de usuario**
 
-¡Muy bien implementado! 👏
+---
+
+## DETALLE DEL QUERY 
+
+La consulta JPQL transformada a SQL estándar para que la entiendas mejor:
+
+```sql
+     
+SELECT t.*
+FROM transaction t
+LEFT JOIN product p ON t.product_id = p.id
+WHERE (
+    ? IS NULL OR
+    LOWER(t.description) LIKE LOWER(CONCAT('%', ?, '%')) OR
+    LOWER(t.status) LIKE LOWER(CONCAT('%', ?, '%')) OR
+    LOWER(p.name) LIKE LOWER(CONCAT('%', ?, '%')) OR
+    LOWER(p.sku) LIKE LOWER(CONCAT('%', ?, '%'))
+)
+     
+```
+
+- `?` representa el parámetro de búsqueda (`searchText`).
+- `t.product_id = p.id` asume que la relación es por ese campo (ajústalo si tu FK es diferente).
+- Así, busca el texto en descripción, estado, nombre y SKU del producto, ignorando mayúsculas/minúsculas y permitiendo búsquedas parciales.
+- Si el parámetro es `NULL`, trae todos los resultados.
+
+
+
+```sql
+
+LOWER(t.description) LIKE LOWER(CONCAT('%', ?, '%'))
+```
+
+Claro. Esta expresión se usa en SQL para hacer una búsqueda de texto **sin distinguir mayúsculas/minúsculas** y permitiendo coincidencias parciales.
+
+- `LOWER(t.description)`: Convierte el valor de la columna `description` a minúsculas.
+- `LOWER(CONCAT('%', ?, '%'))`: Convierte el texto de búsqueda (el parámetro `?`) a minúsculas y le agrega `%` antes y después, para buscar cualquier coincidencia que contenga ese texto en cualquier parte.
+- `LIKE`: Compara ambos valores y verifica si hay coincidencia parcial.
+
+**¿Qué logra?**  
+Busca todas las filas donde la descripción contenga el texto buscado, sin importar si está en mayúsculas o minúsculas.
+
+**Ejemplo:**  
+Si buscas `LapTop`, encontrará descripciones como `laptop nueva`, `LAPTOP usada`, `Accesorios para Laptop`, etc.
+
+---
+Claro. Supón que tienes los siguientes datos en la base de datos:
+
+- Transaction 1:
+    - description: "Compra de laptop"
+    - status: "COMPLETADO"
+    - Product name: "Laptop Dell"
+    - Product sku: "DL-123"
+
+- Transaction 2:
+    - description: "Venta de mouse"
+    - status: "PENDIENTE"
+    - Product name: "Mouse Logitech"
+    - Product sku: "LG-456"
+
+Si llamas al método así:
+
+```java
+Page<Transaction> resultados = transactionRepository.searchTransactions("laptop", pageable);
+```
+
+El resultado incluirá la Transaction 1, porque "laptop" aparece en la descripción y en el nombre del producto, sin importar mayúsculas o minúsculas.
+
+Si llamas con `null`:
+
+```java
+Page<Transaction> resultados = transactionRepository.searchTransactions(null, pageable);
+```
+
+El resultado incluirá todas las transacciones, porque la condición `:searchText IS NULL` se cumple y no se filtra nada.
+
+---
+
+</details>
+<details>
+<summary><strong>💡CLASE 08 DTO</strong> </summary>
+
+```java
+@JsonIgnoreProperties(ignoreUnknown = true)
+
+```
+
+> La anotación `@JsonIgnoreProperties(ignoreUnknown = true)` se usa para indicar que, 
+> al deserializar un JSON a un objeto Java, se ignoren las propiedades desconocidas 
+> (es decir, las que no existen en la clase). Así, si el JSON tiene campos extra que
+> tu clase no define, no lanzará error y simplemente los omitirá. Esto es útil para 
+> hacer tu API más tolerante a cambios o datos adicionales.
+> 
+>
+---
+
+## Ejemplo de cómo funciona `@JsonIgnoreProperties(ignoreUnknown = true)` en la clase `TransactionRequest`:
+
+Supón que tu clase es así:
+
+```java
+// src/main/java/com/george/invetorymanagementsystem/dto/TransactionRequest.java
+package com.george.invetorymanagementsystem.dto;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class TransactionRequest {
+    private String description;
+    private Double amount;
+}
+```
+
+Si recibes este JSON:
+
+```json
+{
+  "description": "Compra de laptop",
+  "amount": 1500.0,
+  "extraField": "valor que no existe en la clase"
+}
+```
+
+El campo `extraField` será ignorado al convertir el JSON a un objeto `TransactionRequest`, y no lanzará error. Solo se asignarán los valores de `description` y `amount`.
+---
+La anotación `@Positive` asegura que el valor de `quantity` sea mayor que cero.  
+Ejemplo de uso en un controlador:
+
+```java
+// src/main/java/com/george/invetorymanagementsystem/controller/TransactionController.java
+@PostMapping("/transactions")
+public ResponseEntity<String> createTransaction(@Valid @RequestBody TransactionRequest request) {
+    // Si quantity es <= 0, Spring devolverá un error de validación automáticamente
+    return ResponseEntity.ok("Transacción creada correctamente");
+}
+```
+
+Si envías este JSON:
+
+```json
+{
+  "productId": 1,
+  "quantity": -5
+}
+```
+
+La respuesta será un error de validación con el mensaje:  
+`Quantity id is requered` (porque -5 no es positivo).
+
+---
+
+La anotación `@JsonInclude(JsonInclude.Include.NON_NULL)` indica que, al convertir un objeto Java a JSON, solo se incluirán los campos que no sean `null`. Si un campo es `null`, no aparecerá en el JSON resultante.
+
+**Ejemplo:**
+
+Supón que tienes esta clase:
+
+```java
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class CategoryDTO {
+    private Long id;
+    private String name;
+    private String description;
+}
+```
+
+Y creas un objeto así:
+
+```java
+CategoryDTO dto = new CategoryDTO();
+dto.setId(1L);
+dto.setName("Electrónica");
+// dto.setDescription(null); // No se asigna valor
+
+// Al serializar a JSON:
+```
+
+El JSON resultante será:
+
+```json
+{
+  "id": 1,
+  "name": "Electrónica"
+}
+```
+
+El campo `description` no aparece porque es `null`. Esto ayuda a generar JSONs más limpios y compactos.
+
 </details>

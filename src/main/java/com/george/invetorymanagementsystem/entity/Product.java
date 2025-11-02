@@ -32,7 +32,7 @@ public class Product {
     @Column(unique = true)
     private String sku;
 
-    @Positive(message = "Product price must be a positive value")
+    @Positive(message = "ProductDTO price must be a positive value")
     private BigDecimal price;
 
     @Min(value = 0, message = "Stock quantity cannot be lesser than zero")
@@ -50,7 +50,7 @@ public class Product {
 
     @Override
     public String toString() {
-        return "Product{" +
+        return "ProductDTO{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", sku='" + sku + '\'' +
