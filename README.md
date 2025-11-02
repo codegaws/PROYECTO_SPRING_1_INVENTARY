@@ -544,4 +544,169 @@ El JSON resultante será:
 
 El campo `description` no aparece porque es `null`. Esto ayuda a generar JSONs más limpios y compactos.
 
+
+## CREAMOS DTOS
+
+![img](/images/dtos.png)
+
+## CONSIDERAR
+La anotación `@JsonIgnore` se usa para que el campo `password` no se incluya al convertir el objeto a JSON. Así, cuando envías o recibes datos de usuario en la API, la contraseña no se muestra ni se expone por seguridad.
+
+````java
+    @JsonIgnore
+    private String password;
+````
+
+Ejemplo:  
+Si tienes este objeto:
+
+```java
+UserDTO user = new UserDTO();
+user.setId(1L);
+user.setName("Juan");
+user.setPassword("secreta123");
+```
+
+El JSON generado será:
+
+```json
+{
+  "id": 1,
+  "name": "Juan"
+}
+```
+
+El campo `password` no aparece en el JSON. Esto ayuda a proteger información sensible.
+
+</details>
+
+<details>
+<summary><strong>💡CLASE 09 EXCEPTIONS</strong> </summary>
+
+Te explico cada componente del directorio `exceptions`:
+
+## 1. CustomAccessDeniedHandler.java
+
+Es un manejador personalizado para errores de acceso denegado (HTTP 403). Se ejecuta cuando un usuario autenticado intenta acceder a un recurso para el cual no tiene permisos.
+
+**Funcionamiento:**
+- Implementa `AccessDeniedHandler` de Spring Security
+- Cuando ocurre un `AccessDeniedException`, crea una respuesta JSON personalizada
+- Establece el status HTTP 403 y devuelve el mensaje de error
+
+**Ejemplo:**
+```java
+// Si un USER intenta acceder a un endpoint de ADMIN:
+// GET /admin/users -> Devuelve:
+{
+  "status": 403,
+  "message": "Access Denied"
+}
+```
+
+## 2. CustomAuthenticationEntryPoint.java
+
+Maneja errores de autenticación (HTTP 401) cuando un usuario no está autenticado o tiene credenciales inválidas.
+
+```java
+@Component
+public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    
+    @Override
+    public void commence(HttpServletRequest request, 
+                        HttpServletResponse response,
+                        AuthenticationException authException) throws IOException {
+        
+        Response errorResponse = Response.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .message("Authentication required")
+                .build();
+        
+        response.setContentType("application/json");
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    }
+}
+```
+
+## 3. GlobalExceptionHandler.java
+
+Maneja todas las excepciones de la aplicación de forma centralizada usando `@ControllerAdvice`.
+
+```java
+@ControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Response> handleNotFoundException(NotFoundException e) {
+        Response response = Response.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+    
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Response> handleValidationException(ValidationException e) {
+        return ResponseEntity.badRequest().body(
+            Response.builder()
+                .status(400)
+                .message(e.getMessage())
+                .build()
+        );
+    }
+}
+```
+
+## 4. Excepciones Personalizadas
+
+### NotFoundException.java
+```java
+public class NotFoundException extends RuntimeException {
+    public NotFoundException(String message) {
+        super(message);
+    }
+}
+
+// Uso:
+throw new NotFoundException("Product with ID 123 not found");
+```
+
+### InvalidCredentialsException.java
+```java
+public class InvalidCredentialsException extends RuntimeException {
+    public InvalidCredentialsException(String message) {
+        super(message);
+    }
+}
+
+// Uso en AuthService:
+if (!passwordEncoder.matches(password, user.getPassword())) {
+    throw new InvalidCredentialsException("Invalid username or password");
+}
+```
+
+### NameValueRequiredException.java
+```java
+public class NameValueRequiredException extends RuntimeException {
+    public NameValueRequiredException(String message) {
+        super(message);
+    }
+}
+
+// Uso:
+if (product.getName() == null || product.getName().trim().isEmpty()) {
+    throw new NameValueRequiredException("Product name is required");
+}
+```
+
+## Flujo completo de manejo de errores:
+
+1. **Error de validación** → `GlobalExceptionHandler` → Respuesta JSON 400
+2. **Usuario no autenticado** → `CustomAuthenticationEntryPoint` → Respuesta JSON 401
+3. **Usuario sin permisos** → `CustomAccessDeniedHandler` → Respuesta JSON 403
+4. **Recurso no encontrado** → `NotFoundException` → `GlobalExceptionHandler` → Respuesta JSON 404
+
+Este sistema garantiza respuestas consistentes y manejables desde el frontend.
+
 </details>
