@@ -714,5 +714,466 @@ Este sistema garantiza respuestas consistentes y manejables desde el frontend.
 <details>
 <summary><strong>💡CLASE 10 SECURITY CONFIG</strong> </summary>
 
+# 🔒 Spring Boot Security: Explicación Detallada del Código `CustomUserDetailsService`
+
+Este código define un **servicio personalizado de autenticación** en una aplicación Spring Boot utilizando Spring Security. Sirve para cargar los detalles de un usuario desde la base de datos, útil en procesos de login. A continuación, se describe **cada elemento con ejemplos y emojis** para mejor comprensión:
+
+---
+
+## 📦 Imports
+
+```java
+import com.george.invetorymanagementsystem.entity.User;
+import com.george.invetorymanagementsystem.exceptions.NotFoundException;
+import com.george.invetorymanagementsystem.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+```
+
+- **User**: Clase de entidad que representa un usuario en la base de datos.
+- **NotFoundException**: Excepción personalizada para indicar usuario no encontrado.
+- **UserRepository**: Acceso a métodos para consultar usuarios en la base de datos.
+- **@RequiredArgsConstructor**: Anotación de Lombok que genera constructor con argumentos necesarios para campos finales.
+- **UserDetails/UserDetailsService/UsernameNotFoundException**: Interfaces y excepciones de Spring Security necesarias para cargar y manejar detalles del usuario.
+- **@Service**: Marca la clase como un servicio de Spring.
+
+---
+
+## 🏷️ Decoradores y Definición de Clase
+
+```java
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService
+```
+
+- **@Service** 🛠️: Declara este componente como un servicio gestionado por Spring.
+- **@RequiredArgsConstructor** ✏️: (Opcional en este contexto, ya que también se usa @Autowired) Genera constructor para inyectar dependencias.
+- **CustomUserDetailsService**: Clase que implementa la lógica de carga de usuarios.
+- **implements UserDetailsService**: Contrato que obliga a implementar el método `loadUserByUsername`.
+
+---
+
+## 🏡 Inyección de Dependencias
+
+```java
+@Autowired
+private UserRepository userRepository;
+```
+
+- **@Autowired** 🧩: Pide a Spring que inyecte automáticamente el repositorio de usuarios.
+- **userRepository**: Objeto para consultar usuarios en BD.
+
+---
+
+## ⚡ Sobrescritura de Método
+
+```java
+@Override
+public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new NotFoundException("User Email Not Found!"));
+    return AuthUser.builder()
+            .user(user)
+            .build();
+}
+```
+
+### Paso a paso:
+
+1. **Método loadUserByUsername** 🕵️‍♂️
+    - Parámetro: **username** (por lo general es el email).
+    - Se ejecuta automáticamente cuando Spring Security busca autenticar un usuario.
+
+2. **Buscar usuario** 🔍
+   ```java
+   userRepository.findByEmail(username)
+   ```
+    - Busca el usuario en la base de datos por su email.
+
+3. **Manejo de usuario no encontrado** ⚠️
+   ```java
+   .orElseThrow(() -> new NotFoundException("User Email Not Found!"));
+   ```
+    - Si no existe, lanza una excepción personalizada.
+
+4. **Construcción del UserDetails personalizado** 🛠️
+   ```java
+   return AuthUser.builder().user(user).build();
+   ```
+    - Devuelve un objeto de tipo `UserDetails`.
+    - `AuthUser` es una clase personalizada (debes implementarla) que adapta tu entidad `User` al modelo de Spring Security.
+
+---
+
+## 💡 Ejemplo Completo
+
+Supongamos que tienes un login con el correo y clave. El sistema usará este servicio cuando llamas al endpoint de autenticación.   
+**Ejemplo de flujo:**
+
+1. Usuario intenta iniciar sesión con `usuario@ejemplo.com`.
+2. Spring Security invoca `CustomUserDetailsService.loadUserByUsername("usuario@ejemplo.com")`.
+3. Se busca el usuario en la BD.
+4. Si existe, se crea un objeto `AuthUser` que implementa UserDetails.
+5. Si no existe, se lanza "User Email Not Found!".
+
+---
+
+## 🛠️ Ejemplo de AuthUser
+
+Aquí tienes cómo podría verse la clase `AuthUser`:
+
+```java
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+public class AuthUser implements UserDetails {
+
+    private final User user;
+
+    public AuthUser(User user) {
+        this.user = user;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Retorna los roles/permisos del usuario
+        return Collections.emptyList();
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getEmail();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() { return true; }
+
+    @Override
+    public boolean isAccountNonLocked() { return true; }
+
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+
+    @Override
+    public boolean isEnabled() { return true; }
+}
+```
+---
+
+## 🔑 Resumen
+
+- 📚 Este servicio personaliza cómo buscar usuarios al autenticar.
+- 👤 Implementa la lógica de Spring Security buscando por email.
+- 💥 Lanza error si no existe el usuario.
+- 🔑 Devuelve un `UserDetails` usado internamente para seguridad.
+
+---
+
+## 📋 Referencia rápida
+
+| Elemento               | Icono | Descripción breve                                             |
+|------------------------|-------|--------------------------------------------------------------|
+| @Service               | 🛠️   | Marca la clase como servicio de Spring                       |
+| @Autowired             | 🧩    | Inyecta dependencias                                         |
+| UserDetailsService     | 🔐    | Contrato usado por Spring Security para buscar usuarios      |
+| UserRepository         | 💽    | Acceso a la base de datos de usuarios                        |
+| NotFoundException      | ⚠️    | Excepción personalizada si usuario no existe                 |
+| UserDetails            | 🗝️    | Objeto adaptador con la info de autenticación del usuario    |
+| AuthUser               | 👤    | Implementación concreta de UserDetails (personalizada)       |
+
+---
+# 👤 Clase `AuthUser` en Spring Boot Security
+
+Esta clase es la implementación personalizada de `UserDetails` que adapta tu entidad propia de usuario (`User`) al modelo interno de autenticación de **Spring Security**. Aquí se explican **cada elemento** y su función, usando emojis y ejemplos claros para facilitar la comprensión.
+
+---
+
+## 📦 Imports
+
+```java
+import com.george.invetorymanagementsystem.entity.User;
+import lombok.Builder;
+import lombok.Data;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.Collection;
+import java.util.List;
+```
+
+- **User**: Entidad personalizada que representa al usuario en tu base de datos.
+- **Lombok (`@Data`, `@Builder`)**: Generan automáticamente métodos útiles (getters/setters, constructor, builder pattern).
+- **Spring Security (`GrantedAuthority`, `UserDetails`, etc.)**: Proveen interfaces que Spring Security entiende para protección de endpoints.
+
+---
+
+## 🏷️ Anotaciones de Clase
+
+```java
+@Data
+@Builder
+public class AuthUser implements UserDetails
+```
+
+- **@Data** 📝: Lombok genera automáticamente getters, setters, equals, hashCode y toString.
+- **@Builder** 🧱: Lombok habilita el patrón builder para instanciar fácilmente objetos de esta clase.
+- **implements UserDetails**: Obliga a implementar métodos que Spring Security necesita para autenticar y autorizar usuarios.
+
+---
+
+## 🧩 Atributo Interno
+
+```java
+private User user;
+```
+- **user** 👤: Instancia de tu entidad de usuario. Contiene toda la información relevante como email, contraseña, roles, etc.
+
+---
+
+## 🔑 Métodos sobrescritos de `UserDetails`
+
+1. ## 🔗 Autoridades
+
+    ```java
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(user.getRole().name()));
+    }
+    ```
+    - Retorna la colección de roles/permisos asignados al usuario.
+    - Envuelve el rol de tu entidad de usuario en un objeto `SimpleGrantedAuthority`.
+    - **Ejemplo:** Si el usuario es ADMIN, retornará `[{"authority": "ADMIN"}]`.
+    - **¿Por qué es importante?** Spring Security usa las autoridades para permitir o restringir acceso a los endpoints.
+
+2. ## 🔒 Password
+
+    ```java
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+    ```
+    - Retorna la contraseña almacenada (debe estar hasheada).
+
+3. ## 📧 Username
+
+    ```java
+    @Override
+    public String getUsername() {
+        return user.getEmail();
+    }
+    ```
+    - Retorna el identificador único del usuario, **en este caso el email**.
+    - Spring Security tomará este valor para hacer el login.
+
+4. ## ⏳ ¿Cuenta Expirada?
+
+    ```java
+    @Override
+    public boolean isAccountNonExpired() {
+        return UserDetails.super.isAccountNonExpired();
+    }
+    ```
+    - Indica si la cuenta ha expirado. Por defecto, retornará `true`.
+    - **Tip:** Puedes personalizar para manejar lógicas de expiración.
+
+5. ## 🚪 ¿Cuenta Bloqueada?
+
+    ```java
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+    ```
+    - Siempre retorna `true`, significa que la cuenta nunca estará bloqueada.
+    - **Tip:** Puedes cambiar esto según lógica de negocio (ej: muchos intentos fallidos).
+
+6. ## 🔐 ¿Credenciales Expiradas?
+
+    ```java
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+    ```
+    - Siempre `true`. Cambia si quieres forzar cambio de contraseña periódicamente.
+
+7. ## ✅ ¿Cuenta Habilitada?
+
+    ```java
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+    ```
+    - Siempre `true`, indica que la cuenta está habilitada.
+    - Puedes condicionar esto, por ejemplo, si el usuario no ha verificado el email.
+
+---
+
+## 🛠️ Ejemplo Práctico de Uso
+
+Cuando Spring Security necesita autenticar un usuario, va a convertir la entidad de tu base de datos en un objeto `AuthUser`:
+
+```java
+User user = userRepository.findByEmail("usuario@ejemplo.com").get();
+AuthUser authUser = AuthUser.builder().user(user).build();
+
+String correo = authUser.getUsername();       // "usuario@ejemplo.com"
+String clave = authUser.getPassword();        // "***hash***"
+List<GrantedAuthority> roles = (List<GrantedAuthority>) authUser.getAuthorities(); // [SimpleGrantedAuthority("ADMIN")]
+```
+
+---
+
+## 🧑‍💻 Comentarios Adicionales
+
+- Así, cualquier lógica adicional (roles, expiración, bloqueo) puede ser controlada aquí y Spring Security la integrará automáticamente.
+- Si quieres agregar más campos o controles, aquí es el lugar centralizado para hacerlo.
+
+---
+
+## 📋 Tabla Resumen
+
+| Elemento                       | Icono | Descripción breve                                                  |
+|--------------------------------|-------|--------------------------------------------------------------------|
+| @Data, @Builder                | 📝🧱  | Genera getters/setters/constructor/builder automático              |
+| implements UserDetails         | 🔐    | Indica que es compatible con Spring Security                       |
+| getAuthorities()               | 🔗    | Devuelve los roles/permisos del usuario                            |
+| getUsername(), getPassword()   | 📧🔒  | Email y contraseña de la entidad de usuario                        |
+| isAccountNonExpired()          | ⏳    | Indica si la cuenta está expirada                                  |
+| isAccountNonLocked()           | 🚪    | Indica si la cuenta está bloqueada                                 |
+| isCredentialsNonExpired()      | 🔐    | Indica si la contraseña está expirada                              |
+| isEnabled()                    | ✅    | Seguridad: indica si la cuenta está activa                         |
+
+---
+## Algunos Ejemplos de Uso Común de la Clase `AuthUser` de bloqueo 
+
+# 🧑‍💻 Ejemplos prácticos de uso de `AuthUser` en seguridad Spring Boot
+
+A continuación te presento ejemplos que puedes copiar directamente para entender y probar cómo se usa y cómo puedes personalizar la clase `AuthUser`:
+
+---
+
+## 🌐 Ejemplo básico: uso en el flujo de autenticación
+
+Supón que tienes el siguiente login controller:
+
+```java
+@RestController
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authenticationManager;
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+        UsernamePasswordAuthenticationToken authToken =
+            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+        Authentication authentication = authenticationManager.authenticate(authToken);
+        AuthUser userDetails = (AuthUser) authentication.getPrincipal();
+
+        return ResponseEntity.ok("Usuario autenticado! Rol: " + userDetails.getAuthorities());
+    }
+}
+```
+
+---
+
+## 🛠️ Ejemplo de creación manual de `AuthUser`
+
+Supón que recibes una entidad usuario desde la base de datos (ejemplo simulado):
+
+```java
+User user = new User();
+user.setEmail("admin@ejemplo.com");
+user.setPassword("$2a$10$encryptedPassword...");
+user.setRole(Role.ADMIN);
+
+AuthUser authUser = AuthUser.builder()
+    .user(user)
+    .build();
+
+System.out.println("Nombre de usuario: " + authUser.getUsername());    // admin@ejemplo.com
+System.out.println("Roles: " + authUser.getAuthorities());             // [ADMIN]
+System.out.println("Contraseña: " + authUser.getPassword());           // $2a$10$encryptedPassword...
+```
+
+---
+
+## 🔗 Control de permisos usando roles
+
+Si en tu controller tienes una restricción de acceso por rol:
+
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+@GetMapping("/admin/secure-data")
+public String secureAdminData() {
+    return "Solo administradores pueden ver esto";
+}
+```
+Cuando tu método `getAuthorities()` retorna `[SimpleGrantedAuthority("ADMIN")]`, este endpoint solo será accesible a usuarios con dicho rol.
+
+---
+
+## 🔒 Ejemplo de cuenta bloqueada (personalizado)
+
+Puedes modificar el método `isAccountNonLocked()` así:
+
+```java
+@Override
+public boolean isAccountNonLocked() {
+    // Supón que tu entidad User tiene un campo booleano llamado locked
+    return !user.isLocked();
+}
+```
+Así, si el usuario está bloqueado en la base de datos, será rechazado el inicio de sesión.
+
+---
+
+## ✅ Ejemplo de cuenta habilitada (personalizado)
+
+Supón que tu entidad `User` tiene un campo `boolean enabled` (usuario activado/desactivado):
+
+```java
+@Override
+public boolean isEnabled() {
+    return user.isEnabled();
+}
+```
+
+---
+
+## ⏳ Ejemplo de cuenta expirada (personalizado)
+
+Supón que tienes fecha de expiración en la entidad:
+
+```java
+@Override
+public boolean isAccountNonExpired() {
+    return user.getExpirationDate().isAfter(LocalDateTime.now());
+}
+```
+
+---
+
+**TIP:**  
+Todos estos métodos pueden personalizarse según tu modelo y tu lógica de negocio. Spring Security automáticamente verificará estas condiciones al autenticar usuarios y solo permitirá el acceso si todas retornan `true`.
+
+---
+
+¿Quieres un ejemplo de clase `User`, de implementación de roles, o un ejemplo de configuración de Spring Security para probar todo esto?
+
+
 
 </details>
