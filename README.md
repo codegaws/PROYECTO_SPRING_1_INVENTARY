@@ -710,3 +710,9 @@ if (product.getName() == null || product.getName().trim().isEmpty()) {
 Este sistema garantiza respuestas consistentes y manejables desde el frontend.
 
 </details>
+
+<details>
+<summary><strong>💡CLASE 10 SECURITY CONFIG</strong> </summary>
+
+
+</details>
