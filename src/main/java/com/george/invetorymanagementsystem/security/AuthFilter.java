@@ -46,6 +46,11 @@ public class AuthFilter extends OncePerRequestFilter {
             }
         }
 
+        try {
+            filterChain.doFilter(request, response);
+        } catch (IOException e) {
+            log.error("Error occured in Authfilter: {} ", e.getMessage());
+        }
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
