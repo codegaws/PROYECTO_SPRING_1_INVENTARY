@@ -1,7 +1,6 @@
 # PROYECTO INVENTARIO SPRINGBOOT
 
-<details>
-<summary><strong>💡Notas : Tabla BD</strong> </summary>
+## 💡Notas : Tabla BD
 
 ![image](/images/tabla.png)
 
@@ -9,7 +8,7 @@
 
 ¡**Exactamente**! 🎯
 
-## Sí, se pueden generar distintos IDs de transacciones para un usuario
+Sí, se pueden generar distintos IDs de transacciones para un usuario
 
 Con la relación `@ManyToOne` que tienes:
 
@@ -56,7 +55,7 @@ Un usuario como "codegaws" podría generar:
 **¡¿que es LAZY?** 👏
 ¡Excelente pregunta! `fetch = FetchType.LAZY` es muy importante para el rendimiento de tu aplicación.
 
-## ¿Qué significa `FetchType.LAZY`?
+### ¿Qué significa `FetchType.LAZY`?
 
 **LAZY** = "Perezoso" o "Bajo demanda"
 
@@ -69,7 +68,7 @@ private User user;
 
 Con `LAZY`, el objeto `User` **NO se carga automáticamente** cuando cargas una `Transaction`. Solo se carga cuando **realmente lo necesitas**.
 
-## Ejemplo práctico:
+### Ejemplo práctico:
 
 ### Con LAZY (Recomendado):
 ```java
@@ -91,7 +90,7 @@ Transaction transaction = transactionRepository.findById(1L);
 // Query 2: SELECT * FROM user WHERE id = user_id (automático)
 ```
 
-## Ventajas del LAZY:
+### Ventajas del LAZY:
 
 ### 🚀 **Mejor rendimiento**
 - Solo trae datos cuando los necesitas
@@ -107,7 +106,7 @@ List<Transaction> transactions = repo.findAll();
 // Solo ejecuta 1 query, no trae todos los usuarios
 ```
 
-## ⚠️ **Cuidado con el LazyInitializationException**
+### ⚠️ **Cuidado con el LazyInitializationException**
 
 Si intentas acceder al `user` fuera del contexto de JPA:
 ```java
@@ -121,14 +120,13 @@ public void method1() {
 t.getUser().getName(); // ❌ LazyInitializationException
 ```
 
-## Resumen:
+### Resumen:
 `LAZY` = "Tráeme el usuario solo cuando lo pida explícitamente"
 
 ¡Es la opción más eficiente para relaciones `@ManyToOne`! 👍
 </details>
 
-<details>
-<summary><strong>💡ModelMapperConfig</strong></summary>
+## 💡ModelMapperConfig3
 
 ```java
 
@@ -147,23 +145,23 @@ public class ModelMapperConfig {
 
 
 ```
-# Explicación paso a paso de la configuración de ModelMapper en Spring
+### Explicación paso a paso de la configuración de ModelMapper en Spring
 
-## 1. `@Configuration`
+### 1. `@Configuration`
 Esta anotación indica que la clase es una clase de configuración de Spring. Spring la utilizará para definir beans (componentes gestionados por el contenedor de Spring).
 
-## 2. `public class ModelMapperConfig`
+### 2. `public class ModelMapperConfig`
 Es una clase Java donde defines la configuración para el bean `ModelMapper`.
 
-## 3. `@Bean`
+### 3. `@Bean`
 El método anotado con `@Bean` le dice a Spring que el objeto retornado debe ser gestionado como un bean y estará disponible para inyección de dependencias en otras partes de la aplicación.
 
-## 4. `public ModelMapper modelMapper()`
+### 4. `public ModelMapper modelMapper()`
 Es el método que crea y configura una instancia de `ModelMapper`.
 
 ---
 
-## Configuración de ModelMapper
+### Configuración de ModelMapper
 
 - `setFieldMatchingEnabled(true)`: Permite que ModelMapper haga mapeo directamente entre campos (no solo getters/setters).
 - `setFieldAccessLevel(PRIVATE)`: Permite que ModelMapper acceda a campos privados.
@@ -171,13 +169,13 @@ Es el método que crea y configura una instancia de `ModelMapper`.
 
 ---
 
-## ¿Para qué sirve ModelMapper?
+### ¿Para qué sirve ModelMapper?
 
 ModelMapper es una librería que ayuda a mapear (copiar datos) entre objetos, por ejemplo, de una entidad a un DTO (Data Transfer Object) y viceversa. Esto es útil cuando quieres separar la lógica de negocio de la lógica de presentación o transporte de datos.
 
 ---
 
-## ¿DTO?
+### ¿DTO?
 Un DTO (Data Transfer Object) es un objeto simple cuyo propósito principal es transportar datos entre diferentes capas de una aplicación, especialmente entre la capa de presentación (como una API o interfaz de usuario) y la capa de negocio o persistencia (como la base de datos).
 
 ### ¿Para qué sirve un DTO?
@@ -196,10 +194,7 @@ Supón que tienes una entidad `Usuario` con muchos campos sensibles (como contra
 **En resumen:**  
 Un DTO sirve para transferir datos de manera segura, específica y eficiente entre diferentes capas o sistemas, sin exponer detalles internos innecesarios.
 
-</details>
-
-<details>
-<summary><strong>💡CLASE 07 REPOSITORIES</strong> </summary>
+## 💡CLASE 07 REPOSITORIES
 
 ```java
 
@@ -225,7 +220,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
 Te explico qué hace cada parte de tu `TransactionRepository`:
 
-## 📋 **Interfaz Base**
+### 📋 **Interfaz Base**
 ```java
 public interface TransactionRepository extends JpaRepository<Transaction, Long>
 ```
@@ -233,7 +228,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>
 - `Transaction`: entidad a manejar
 - `Long`: tipo del ID de la entidad
 
-## 🗓️ **Método 1: Buscar por Mes y Año**
+### 🗓️ **Método 1: Buscar por Mes y Año**
 ```java
 @Query("SELECT t FROM TransactionDTO t " +
         "WHERE YEAR(t.createdAt) = :year AND MONTH(t.createdAt) = :month")
@@ -250,7 +245,7 @@ List<Transaction> findAllByMonthAndYear(@Param("month") int month, @Param("year"
 // Buscar transacciones de enero 2025
 List<Transaction> transactions = repo.findAllByMonthAndYear(1, 2025);
 ```
-## EN CONTEXTO DE SQL SERIA ASI :
+### EN CONTEXTO DE SQL SERIA ASI :
 Claro. La consulta JPQL que diste se puede transformar a SQL estándar así:
 
 ```sql
@@ -262,7 +257,7 @@ WHERE YEAR(created_at) = :year AND MONTH(created_at) = :month;
 - `created_at` es el campo de fecha (ajusta el nombre si es diferente en tu base de datos).
 - `:year` y `:month` son parámetros que debes reemplazar por los valores deseados.
 
-## PORSICASO EN SQL NO ES VALIDO EL " = : "
+### PORSICASO EN SQL NO ES VALIDO EL " = : "
 No, en SQL estándar no puedes usar `:year` y `:month` directamente.  
 Los dos puntos (`:`) indican **parámetros nombrados** y solo son válidos en JPQL/HQL o 
 frameworks como JPA/Hibernate.
@@ -287,7 +282,7 @@ WHERE YEAR(created_at) = 2025 AND MONTH(created_at) = 6;
 
 ---
 
-## 🔍 **Método 2: Búsqueda Avanzada con Paginación**
+### 🔍 **Método 2: Búsqueda Avanzada con Paginación**
 ```java
 @Query("SELECT t FROM TransactionDTO t " +
         "LEFT JOIN t.product p " +
@@ -326,7 +321,7 @@ Page<Transaction> results = repo.searchTransactions("iphone", pageable);
 Page<Transaction> all = repo.searchTransactions(null, pageable);
 ```
 
-## 🎯 **Casos de Uso Reales:**
+### 🎯 **Casos de Uso Reales:**
 
 ```java
 // Reporte mensual
@@ -340,7 +335,7 @@ List<Transaction> octubre2025 = repo.findAllByMonthAndYear(10, 2025);
 // - SKU producto: "LAPTOP-001"
 ```
 
-## ✨ **Fortalezas del código:**
+### ✨ **Fortalezas del código:**
 - 🔄 **Reutilizable** y **flexible**
 - 🚀 **Eficiente** con paginación
 - 🔍 **Búsqueda potente** en múltiples campos
@@ -348,7 +343,7 @@ List<Transaction> octubre2025 = repo.findAllByMonthAndYear(10, 2025);
 
 ---
 
-## DETALLE DEL QUERY 
+### DETALLE DEL QUERY 
 
 La consulta JPQL transformada a SQL estándar para que la entiendas mejor:
 
@@ -424,9 +419,8 @@ El resultado incluirá todas las transacciones, porque la condición `:searchTex
 
 ---
 
-</details>
-<details>
-<summary><strong>💡CLASE 08 DTO</strong> </summary>
+
+## 💡CLASE 08 DTO
 
 ```java
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -442,7 +436,7 @@ El resultado incluirá todas las transacciones, porque la condición `:searchTex
 >
 ---
 
-## Ejemplo de cómo funciona `@JsonIgnoreProperties(ignoreUnknown = true)` en la clase `TransactionRequest`:
+### Ejemplo de cómo funciona `@JsonIgnoreProperties(ignoreUnknown = true)` en la clase `TransactionRequest`:
 
 Supón que tu clase es así:
 
@@ -475,7 +469,7 @@ Si recibes este JSON:
 }
 ```
 
-El campo `extraField` será ignorado al convertir el JSON a un objeto `TransactionRequest`, y no lanzará error. Solo se asignarán los valores de `description` y `amount`.
+
 ---
 La anotación `@Positive` asegura que el valor de `quantity` sea mayor que cero.  
 Ejemplo de uso en un controlador:
@@ -545,11 +539,11 @@ El JSON resultante será:
 El campo `description` no aparece porque es `null`. Esto ayuda a generar JSONs más limpios y compactos.
 
 
-## CREAMOS DTOS
+### CREAMOS DTOS
 
 ![img](/images/dtos.png)
 
-## CONSIDERAR
+### CONSIDERAR
 La anotación `@JsonIgnore` se usa para que el campo `password` no se incluya al convertir el objeto a JSON. Así, cuando envías o recibes datos de usuario en la API, la contraseña no se muestra ni se expone por seguridad.
 
 ````java
@@ -578,14 +572,11 @@ El JSON generado será:
 
 El campo `password` no aparece en el JSON. Esto ayuda a proteger información sensible.
 
-</details>
-
-<details>
-<summary><strong>💡CLASE 09 EXCEPTIONS</strong> </summary>
+## 💡CLASE 09 EXCEPTIONS
 
 Te explico cada componente del directorio `exceptions`:
 
-## 1. CustomAccessDeniedHandler.java
+### 1. CustomAccessDeniedHandler.java
 
 Es un manejador personalizado para errores de acceso denegado (HTTP 403). Se ejecuta cuando un usuario autenticado intenta acceder a un recurso para el cual no tiene permisos.
 
@@ -604,7 +595,7 @@ Es un manejador personalizado para errores de acceso denegado (HTTP 403). Se eje
 }
 ```
 
-## 2. CustomAuthenticationEntryPoint.java
+### 2. CustomAuthenticationEntryPoint.java
 
 Maneja errores de autenticación (HTTP 401) cuando un usuario no está autenticado o tiene credenciales inválidas.
 
@@ -629,7 +620,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 }
 ```
 
-## 3. GlobalExceptionHandler.java
+### 3. GlobalExceptionHandler.java
 
 Maneja todas las excepciones de la aplicación de forma centralizada usando `@ControllerAdvice`.
 
@@ -658,7 +649,7 @@ public class GlobalExceptionHandler {
 }
 ```
 
-## 4. Excepciones Personalizadas
+### 4. Excepciones Personalizadas
 
 ### NotFoundException.java
 ```java
@@ -700,7 +691,7 @@ if (product.getName() == null || product.getName().trim().isEmpty()) {
 }
 ```
 
-## Flujo completo de manejo de errores:
+### Flujo completo de manejo de errores:
 
 1. **Error de validación** → `GlobalExceptionHandler` → Respuesta JSON 400
 2. **Usuario no autenticado** → `CustomAuthenticationEntryPoint` → Respuesta JSON 401
@@ -709,18 +700,15 @@ if (product.getName() == null || product.getName().trim().isEmpty()) {
 
 Este sistema garantiza respuestas consistentes y manejables desde el frontend.
 
-</details>
+## 💡CLASE 10 SECURITY CONFIG</strong> </summary>
 
-<details>
-<summary><strong>💡CLASE 10 SECURITY CONFIG</strong> </summary>
-
-# 🔒 Spring Boot Security: Explicación Detallada del Código `CustomUserDetailsService`
+### 🔒 Spring Boot Security: Explicación Detallada del Código `CustomUserDetailsService`
 
 Este código define un **servicio personalizado de autenticación** en una aplicación Spring Boot utilizando Spring Security. Sirve para cargar los detalles de un usuario desde la base de datos, útil en procesos de login. A continuación, se describe **cada elemento con ejemplos y emojis** para mejor comprensión:
 
 ---
 
-## 📦 Imports
+### 📦 Imports
 
 ```java
 import com.george.invetorymanagementsystem.entity.User;
@@ -743,7 +731,7 @@ import org.springframework.stereotype.Service;
 
 ---
 
-## 🏷️ Decoradores y Definición de Clase
+### 🏷️ Decoradores y Definición de Clase
 
 ```java
 @Service
@@ -758,7 +746,7 @@ public class CustomUserDetailsService implements UserDetailsService
 
 ---
 
-## 🏡 Inyección de Dependencias
+### 🏡 Inyección de Dependencias
 
 ```java
 @Autowired
@@ -770,7 +758,7 @@ private UserRepository userRepository;
 
 ---
 
-## ⚡ Sobrescritura de Método
+### ⚡ Sobrescritura de Método
 
 ```java
 @Override
@@ -810,7 +798,7 @@ public UserDetails loadUserByUsername(String username) throws UsernameNotFoundEx
 
 ---
 
-## 💡 Ejemplo Completo
+### 💡 Ejemplo Completo
 
 Supongamos que tienes un login con el correo y clave. El sistema usará este servicio cuando llamas al endpoint de autenticación.   
 **Ejemplo de flujo:**
@@ -823,7 +811,7 @@ Supongamos que tienes un login con el correo y clave. El sistema usará este ser
 
 ---
 
-## 🛠️ Ejemplo de AuthUser
+### 🛠️ Ejemplo de AuthUser
 
 Aquí tienes cómo podría verse la clase `AuthUser`:
 
@@ -870,7 +858,7 @@ public class AuthUser implements UserDetails {
 ```
 ---
 
-## 🔑 Resumen
+### 🔑 Resumen
 
 - 📚 Este servicio personaliza cómo buscar usuarios al autenticar.
 - 👤 Implementa la lógica de Spring Security buscando por email.
@@ -879,7 +867,7 @@ public class AuthUser implements UserDetails {
 
 ---
 
-## 📋 Referencia rápida
+### 📋 Referencia rápida
 
 | Elemento               | Icono | Descripción breve                                             |
 |------------------------|-------|--------------------------------------------------------------|
@@ -892,13 +880,13 @@ public class AuthUser implements UserDetails {
 | AuthUser               | 👤    | Implementación concreta de UserDetails (personalizada)       |
 
 ---
-# 👤 Clase `AuthUser` en Spring Boot Security
+### 👤 Clase `AuthUser` en Spring Boot Security
 
 Esta clase es la implementación personalizada de `UserDetails` que adapta tu entidad propia de usuario (`User`) al modelo interno de autenticación de **Spring Security**. Aquí se explican **cada elemento** y su función, usando emojis y ejemplos claros para facilitar la comprensión.
 
 ---
 
-## 📦 Imports
+### 📦 Imports
 
 ```java
 import com.george.invetorymanagementsystem.entity.User;
@@ -917,7 +905,7 @@ import java.util.List;
 
 ---
 
-## 🏷️ Anotaciones de Clase
+### 🏷️ Anotaciones de Clase
 
 ```java
 @Data
@@ -931,7 +919,7 @@ public class AuthUser implements UserDetails
 
 ---
 
-## 🧩 Atributo Interno
+### 🧩 Atributo Interno
 
 ```java
 private User user;
@@ -940,9 +928,9 @@ private User user;
 
 ---
 
-## 🔑 Métodos sobrescritos de `UserDetails`
+### 🔑 Métodos sobrescritos de `UserDetails`
 
-1. ## 🔗 Autoridades
+1. ### 🔗 Autoridades
 
     ```java
     @Override
@@ -955,7 +943,7 @@ private User user;
     - **Ejemplo:** Si el usuario es ADMIN, retornará `[{"authority": "ADMIN"}]`.
     - **¿Por qué es importante?** Spring Security usa las autoridades para permitir o restringir acceso a los endpoints.
 
-2. ## 🔒 Password
+2. ### 🔒 Password
 
     ```java
     @Override
@@ -965,7 +953,7 @@ private User user;
     ```
     - Retorna la contraseña almacenada (debe estar hasheada).
 
-3. ## 📧 Username
+3. ### 📧 Username
 
     ```java
     @Override
@@ -976,7 +964,7 @@ private User user;
     - Retorna el identificador único del usuario, **en este caso el email**.
     - Spring Security tomará este valor para hacer el login.
 
-4. ## ⏳ ¿Cuenta Expirada?
+4. ### ⏳ ¿Cuenta Expirada?
 
     ```java
     @Override
@@ -987,7 +975,7 @@ private User user;
     - Indica si la cuenta ha expirado. Por defecto, retornará `true`.
     - **Tip:** Puedes personalizar para manejar lógicas de expiración.
 
-5. ## 🚪 ¿Cuenta Bloqueada?
+5. ### 🚪 ¿Cuenta Bloqueada?
 
     ```java
     @Override
@@ -998,7 +986,7 @@ private User user;
     - Siempre retorna `true`, significa que la cuenta nunca estará bloqueada.
     - **Tip:** Puedes cambiar esto según lógica de negocio (ej: muchos intentos fallidos).
 
-6. ## 🔐 ¿Credenciales Expiradas?
+6. ### 🔐 ¿Credenciales Expiradas?
 
     ```java
     @Override
@@ -1008,7 +996,7 @@ private User user;
     ```
     - Siempre `true`. Cambia si quieres forzar cambio de contraseña periódicamente.
 
-7. ## ✅ ¿Cuenta Habilitada?
+7. ### ✅ ¿Cuenta Habilitada?
 
     ```java
     @Override
@@ -1021,7 +1009,7 @@ private User user;
 
 ---
 
-## 🛠️ Ejemplo Práctico de Uso
+### 🛠️ Ejemplo Práctico de Uso
 
 Cuando Spring Security necesita autenticar un usuario, va a convertir la entidad de tu base de datos en un objeto `AuthUser`:
 
@@ -1036,14 +1024,14 @@ List<GrantedAuthority> roles = (List<GrantedAuthority>) authUser.getAuthorities(
 
 ---
 
-## 🧑‍💻 Comentarios Adicionales
+### 🧑‍💻 Comentarios Adicionales
 
 - Así, cualquier lógica adicional (roles, expiración, bloqueo) puede ser controlada aquí y Spring Security la integrará automáticamente.
 - Si quieres agregar más campos o controles, aquí es el lugar centralizado para hacerlo.
 
 ---
 
-## 📋 Tabla Resumen
+### 📋 Tabla Resumen
 
 | Elemento                       | Icono | Descripción breve                                                  |
 |--------------------------------|-------|--------------------------------------------------------------------|
@@ -1057,15 +1045,15 @@ List<GrantedAuthority> roles = (List<GrantedAuthority>) authUser.getAuthorities(
 | isEnabled()                    | ✅    | Seguridad: indica si la cuenta está activa                         |
 
 ---
-## Algunos Ejemplos de Uso Común de la Clase `AuthUser` de bloqueo 
+### Algunos Ejemplos de Uso Común de la Clase `AuthUser` de bloqueo 
 
-# 🧑‍💻 Ejemplos prácticos de uso de `AuthUser` en seguridad Spring Boot
+### 🧑‍💻 Ejemplos prácticos de uso de `AuthUser` en seguridad Spring Boot
 
 A continuación te presento ejemplos que puedes copiar directamente para entender y probar cómo se usa y cómo puedes personalizar la clase `AuthUser`:
 
 ---
 
-## 🌐 Ejemplo básico: uso en el flujo de autenticación
+### 🌐 Ejemplo básico: uso en el flujo de autenticación
 
 Supón que tienes el siguiente login controller:
 
@@ -1090,7 +1078,7 @@ public class AuthController {
 
 ---
 
-## 🛠️ Ejemplo de creación manual de `AuthUser`
+### 🛠️ Ejemplo de creación manual de `AuthUser`
 
 Supón que recibes una entidad usuario desde la base de datos (ejemplo simulado):
 
@@ -1111,7 +1099,7 @@ System.out.println("Contraseña: " + authUser.getPassword());           // $2a$1
 
 ---
 
-## 🔗 Control de permisos usando roles
+### 🔗 Control de permisos usando roles
 
 Si en tu controller tienes una restricción de acceso por rol:
 
@@ -1126,7 +1114,7 @@ Cuando tu método `getAuthorities()` retorna `[SimpleGrantedAuthority("ADMIN")]`
 
 ---
 
-## 🔒 Ejemplo de cuenta bloqueada (personalizado)
+### 🔒 Ejemplo de cuenta bloqueada (personalizado)
 
 Puedes modificar el método `isAccountNonLocked()` así:
 
@@ -1141,7 +1129,7 @@ Así, si el usuario está bloqueado en la base de datos, será rechazado el inic
 
 ---
 
-## ✅ Ejemplo de cuenta habilitada (personalizado)
+### ✅ Ejemplo de cuenta habilitada (personalizado)
 
 Supón que tu entidad `User` tiene un campo `boolean enabled` (usuario activado/desactivado):
 
@@ -1154,7 +1142,7 @@ public boolean isEnabled() {
 
 ---
 
-## ⏳ Ejemplo de cuenta expirada (personalizado)
+### ⏳ Ejemplo de cuenta expirada (personalizado)
 
 Supón que tienes fecha de expiración en la entidad:
 
@@ -1172,13 +1160,13 @@ Todos estos métodos pueden personalizarse según tu modelo y tu lógica de nego
 
 ---
 
-# 🛡️ Explicación Detallada de `AuthFilter` (Spring Security, JWT)
+### 🛡️ Explicación Detallada de `AuthFilter` (Spring Security, JWT)
 
 Este filtro personalizado (`AuthFilter`) forma parte del sistema de autenticación **JWT** en tu aplicación Spring Boot. Se asegura de que cada petición HTTP verifique el token JWT del usuario antes de continuar con la lógica de la aplicación.
 
 ---
 
-## 📦 Imports esenciales
+### 📦 Imports esenciales
 
 ```java
 import jakarta.servlet.FilterChain;
@@ -1204,7 +1192,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 ---
 
-## 🏷️ Anotaciones y Definición de Clase
+### 🏷️ Anotaciones y Definición de Clase
 
 ```java
 @Component
@@ -1219,7 +1207,7 @@ public class AuthFilter extends OncePerRequestFilter
 
 ---
 
-## 🔗 Variables Inyectadas
+### 🔗 Variables Inyectadas
 
 ```java
 private final JwtUtils jwtUtils;
@@ -1230,7 +1218,7 @@ private final CustomUserDetailsService customUserDetailsService;
 
 ---
 
-## 🔍 Método Principal: `doFilterInternal`
+### 🔍 Método Principal: `doFilterInternal`
 
 ### **Flujo paso a paso:**
 
@@ -1279,7 +1267,7 @@ private final CustomUserDetailsService customUserDetailsService;
 
 ---
 
-## 🧪 Ejemplo de uso
+### 🧪 Ejemplo de uso
 
 Supón que un frontend hace:
 ```
@@ -1291,7 +1279,7 @@ Authorization: Bearer eyJhbGciOi...
 
 ---
 
-## 🏷️ Método Auxiliar: `getTokenFromRequest`
+### 🏷️ Método Auxiliar: `getTokenFromRequest`
 
 ```java
 private String getTokenFromRequest(HttpServletRequest request) {
@@ -1306,7 +1294,7 @@ private String getTokenFromRequest(HttpServletRequest request) {
 
 ---
 
-## 📋 Tabla resumen
+### 📋 Tabla resumen
 
 | Elemento                                 | Icono | Funcionalidad resumida                                                        |
 |------------------------------------------|-------|-------------------------------------------------------------------------------|
@@ -1320,7 +1308,7 @@ private String getTokenFromRequest(HttpServletRequest request) {
 
 ---
 
-## 🧑‍💻 Ejemplo de personalización
+### 🧑‍💻 Ejemplo de personalización
 
 - **Podrías negar acceso si el usuario está inhabilitado**: comprueba si userDetails.isEnabled() antes de crear el UsernamePasswordAuthenticationToken.
 - **Registrar logs detallados**: usando `log.info`.
@@ -1328,13 +1316,13 @@ private String getTokenFromRequest(HttpServletRequest request) {
 
 ---
 
-# 🛡️ Explicación Detallada de `SecurityFilter` (Spring Security Configuration)
+### 🛡️ Explicación Detallada de `SecurityFilter` (Spring Security Configuration)
 
 Esta clase configura la seguridad global en tu aplicación **Spring Boot** usando Spring Security. Aquí se administran reglas de acceso, manejo de tokens JWT, gestión de excepciones y filtros de seguridad.
 
 ---
 
-## 📦 Imports Clave
+### 📦 Imports Clave
 
 - **Spring Security:** Manejo de seguridad, filtros, autenticación.
 - **Lombok:** Anotaciones para inyección y logging.
@@ -1343,7 +1331,7 @@ Esta clase configura la seguridad global en tu aplicación **Spring Boot** usand
 
 ---
 
-## 🏷️ Anotaciones y Definición
+### 🏷️ Anotaciones y Definición
 
 ```java
 @Configuration
@@ -1361,7 +1349,7 @@ Esta clase configura la seguridad global en tu aplicación **Spring Boot** usand
 
 ---
 
-## 🔌 Inyección de Dependencias
+### 🔌 Inyección de Dependencias
 
 ```java
 private final AuthFilter authFilter;
@@ -1375,7 +1363,7 @@ private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
 ---
 
-## 🔗 Método `securityFilterChain`
+### 🔗 Método `securityFilterChain`
 
 Configura la cadena de seguridad para todas las requests HTTP.
 
@@ -1423,7 +1411,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
 
 ---
 
-## 🔑 Beans Adicionales
+### 🔑 Beans Adicionales
 
 ### PasswordEncoder
 
@@ -1450,7 +1438,7 @@ public AuthenticationManager authenticationManager(AuthenticationConfiguration a
 
 ---
 
-## 🧪 Ejemplo práctico de flujo
+### 🧪 Ejemplo práctico de flujo
 
 1. Cliente hace **POST /api/auth/login**: acceso permitido sin token.
 2. Cliente recibe un JWT.
@@ -1462,7 +1450,7 @@ public AuthenticationManager authenticationManager(AuthenticationConfiguration a
 
 ---
 
-## 📋 Tabla Resumen
+### 📋 Tabla Resumen
 
 | Elemento                        | Icono | Breve descripción                                                      |
 |----------------------------------|-------|-----------------------------------------------------------------------|
@@ -1475,13 +1463,13 @@ public AuthenticationManager authenticationManager(AuthenticationConfiguration a
 
 ---
 
-# 🔑 Explicación Detallada de `JwtUtils` (JWT Utility para Spring Security)
+### 🔑 Explicación Detallada de `JwtUtils` (JWT Utility para Spring Security)
 
 Esta clase en tu proyecto sirve como **herramienta centralizada para la generación, validación y extracción de información** desde tokens JWT (JSON Web Token), que es la base estándar para autenticación stateless en modern apps.
 
 ---
 
-## 📦 Imports Clave
+### 📦 Imports Clave
 
 - **JJWT (io.jsonwebtoken):** Librería popular para manejar JWT en Java/Spring.
 - **Spring Security:** Facilita la integración con el modelo de usuario de seguridad.
@@ -1490,7 +1478,7 @@ Esta clase en tu proyecto sirve como **herramienta centralizada para la generaci
 
 ---
 
-## 🚀 Propiedades y Variables
+### 🚀 Propiedades y Variables
 
 ```java
 private static final long EXPIRATION_TIME_IN_MILLISEC = ... // 6 meses
@@ -1505,7 +1493,7 @@ private String secreteJwtString;
 
 ---
 
-## 🔄 Inicialización (`@PostConstruct`)
+### 🔄 Inicialización (`@PostConstruct`)
 
 ```java
 @PostConstruct
@@ -1519,7 +1507,7 @@ private void init() {
 
 ---
 
-## 🪄 Método: `generateToken(String email)`
+### 🪄 Método: `generateToken(String email)`
 
 ```java
 public String generateToken(String email) {
@@ -1540,7 +1528,7 @@ public String generateToken(String email) {
 
 ---
 
-## 🧑‍💻 Método: `getUsernameFromToken(String token)`
+### 🧑‍💻 Método: `getUsernameFromToken(String token)`
 
 ```java
 public String getUsernameFromToken(String token) {
@@ -1551,7 +1539,7 @@ public String getUsernameFromToken(String token) {
 
 ---
 
-## 🕵️ Método genérico: `extractClaims(...)`
+### 🕵️ Método genérico: `extractClaims(...)`
 
 ```java
 private <T> T extractClaims(String token, Function<Claims, T> claimsTFunction) {
@@ -1564,7 +1552,7 @@ private <T> T extractClaims(String token, Function<Claims, T> claimsTFunction) {
 
 ---
 
-## ✅ Método: `isTokenValid(String token, UserDetails userDetails)`
+### ✅ Método: `isTokenValid(String token, UserDetails userDetails)`
 
 ```java
 public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -1578,7 +1566,7 @@ public boolean isTokenValid(String token, UserDetails userDetails) {
 
 ---
 
-## ⏳ Método Privado: `isTokenExpired(String token)`
+### ⏳ Método Privado: `isTokenExpired(String token)`
 
 ```java
 private boolean isTokenExpired(String token) {
@@ -1589,7 +1577,7 @@ private boolean isTokenExpired(String token) {
 
 ---
 
-## 🧪 Ejemplo de Uso
+### 🧪 Ejemplo de Uso
 
 ### 1. **Generar token:**
 ```java
@@ -1610,7 +1598,7 @@ boolean esValido = jwtUtils.isTokenValid(jwt, user);
 
 ---
 
-## 📋 Tabla Resumida
+### 📋 Tabla Resumida
 
 | Elemento                        | Icono | Breve explicación                                   |
 |----------------------------------|-------|-----------------------------------------------------|
@@ -1623,7 +1611,7 @@ boolean esValido = jwtUtils.isTokenValid(jwt, user);
 
 ---
 
-## 🚨 Buenas Prácticas & Consejos
+### 🚨 Buenas Prácticas & Consejos
 
 - **Guarda** `secreteJwtString` en variables de entorno o archivos seguros.
 - **No compartas** la clave secreta.
@@ -1631,13 +1619,13 @@ boolean esValido = jwtUtils.isTokenValid(jwt, user);
 
 ---
 
-# 🌎 Explicación Detallada de `CorsConfig` (CORS en Spring Boot)
+### 🌎 Explicación Detallada de `CorsConfig` (CORS en Spring Boot)
 
 Esta clase configura las reglas CORS (**Cross-Origin Resource Sharing**) en tu API de Spring Boot, permitiendo (o restringiendo) el acceso a tu backend desde otros dominios/frontends. Es muy importante para exponer APIs a aplicaciones cliente en distintos orígenes (puertos, dominios).
 
 ---
 
-## 📦 IMPORTS CLAVE
+### 📦 IMPORTS CLAVE
 
 - **WebMvcConfigurer:** Interfaz de configuración para funcionalidades web en Spring.
 - **CorsRegistry:** Clase para registrar reglas CORS.
@@ -1645,7 +1633,7 @@ Esta clase configura las reglas CORS (**Cross-Origin Resource Sharing**) en tu A
 
 ---
 
-## 🏷️ ANOTACIONES
+### 🏷️ ANOTACIONES
 
 ```java
 @Configuration
@@ -1655,7 +1643,7 @@ public class CorsConfig { ... }
 
 ---
 
-## ⚙️ MÉTODO PRINCIPAL
+### ⚙️ MÉTODO PRINCIPAL
 
 ```java
 public WebMvcConfigurer webMvcConfigurer() {
@@ -1691,7 +1679,7 @@ public WebMvcConfigurer webMvcConfigurer() {
 
 ---
 
-## 🧑‍💻 EJEMPLO DE USO
+### 🧑‍💻 EJEMPLO DE USO
 
 Si tienes:
 - **Frontend** en `http://localhost:3000`
@@ -1704,7 +1692,7 @@ Esto es lo que permite esta configuración:
 
 ---
 
-## 🛠️ CÓMO MEJORAR (con @Bean)
+### 🛠️ CÓMO MEJORAR (con @Bean)
 
 Debes anotar el método con `@Bean` para que Spring lo recoja correctamente como configuración:
 
@@ -1728,7 +1716,7 @@ public class CorsConfig {
 
 ---
 
-## 📋 TABLA RESUMEN
+### 📋 TABLA RESUMEN
 
 | Elemento               | Icono | Explicación                                     |
 |------------------------|-------|-------------------------------------------------|
@@ -1739,14 +1727,14 @@ public class CorsConfig {
 | @Bean                  | 🫘    | Registra el configurador como bean de Spring    |
 
 ---
-# RESUMEN TOTAL
-# 🎓 Relación entre Clases de Spring Security: Guía Completa del Profesor
+### RESUMEN TOTAL
+### 🎓 Relación entre Clases de Spring Security: Guía Completa del Profesor
 
 ¡Hola! Como tu profesor con alta seniority en Java y Spring Security, te voy a explicar paso a paso cómo **todas estas clases trabajan juntas** para crear un sistema de autenticación JWT completo y robusto.
 
 ---
 
-## 🧩 VISTA GENERAL: ¿Qué hace cada clase?
+### 🧩 VISTA GENERAL: ¿Qué hace cada clase?
 
 Imagina que tu aplicación es una **fortaleza** 🏰. Cada clase tiene un rol específico para protegerla:
 
@@ -1761,7 +1749,7 @@ Imagina que tu aplicación es una **fortaleza** 🏰. Cada clase tiene un rol es
 
 ---
 
-## 🔄 FLUJO COMPLETO: De la Petición a la Respuesta
+### 🔄 FLUJO COMPLETO: De la Petición a la Respuesta
 
 ### **Escenario**: Un usuario quiere acceder a `/api/usuarios`
 
@@ -1787,7 +1775,7 @@ Imagina que tu aplicación es una **fortaleza** 🏰. Cada clase tiene un rol es
 
 ---
 
-## 🔗 RELACIONES DETALLADAS
+### 🔗 RELACIONES DETALLADAS
 
 ### 1️⃣ **SecurityFilter** 👑 → **AuthFilter** 🛡️
 ```java
@@ -1832,7 +1820,7 @@ return AuthUser.builder().user(user).build();
 
 ---
 
-## 📖 EJEMPLO PASO A PASO: Login de Usuario
+### 📖 EJEMPLO PASO A PASO: Login de Usuario
 
 ### **Paso 1: Usuario hace Login** 🔐
 ```http
@@ -1877,7 +1865,7 @@ return ResponseEntity.ok(new LoginResponse(jwt));
 
 ---
 
-## 🚀 EJEMPLO: Request Protegido
+### 🚀 EJEMPLO: Request Protegido
 
 ### **Paso 1: Frontend envía request** 📡
 ```http
@@ -1918,7 +1906,7 @@ public List<Usuario> getUsuarios() {
 
 ---
 
-## 🎨 DIAGRAMA DE FLUJO COMPLETO
+### 🎨 DIAGRAMA DE FLUJO COMPLETO
 
 ```mermaid
 graph TB
@@ -1950,7 +1938,7 @@ graph TB
 
 ---
 
-## 💡 PUNTOS CLAVE PARA RECORDAR
+### 💡 PUNTOS CLAVE PARA RECORDAR
 
 ### **Orden de Ejecución** 📋
 1. **CorsConfig** → Permite origen
@@ -1973,7 +1961,7 @@ graph TB
 
 ---
 
-## 🚨 ERRORES COMUNES DE PRINCIPIANTES
+### 🚨 ERRORES COMUNES DE PRINCIPIANTES
 
 ### ❌ **Error 1**: Mezclar responsabilidades
 ```java
@@ -1999,7 +1987,7 @@ public class AuthFilter {
 
 ---
 
-## 🎓 EJERCICIO PARA PRACTICAR
+### 🎓 EJERCICIO PARA PRACTICAR
 
 **Crea un endpoint de logout que:**
 1. Reciba un JWT
