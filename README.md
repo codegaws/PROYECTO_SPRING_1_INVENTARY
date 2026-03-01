@@ -417,6 +417,341 @@ Page<Transaction> resultados = transactionRepository.searchTransactions(null, pa
 
 El resultado incluirá todas las transacciones, porque la condición `:searchText IS NULL` se cumple y no se filtra nada.
 
+### Explicacion adicional
+### ✅ Exactamente, `:searchText` es el parámetro
+
+Es como una **"caja vacía"** que espera recibir el valor que tú le mandes.
+
+---
+
+### 🔗 El flujo completo del parámetro
+
+```java
+//        Aquí defines la caja y le pones nombre
+//                      ↓
+Page<Transaction> searchTransactions(@Param("searchText") String searchText, Pageable pageable);
+//                                                         ↑
+//                                             Aquí llega el texto del usuario
+```
+
+```java
+// En el query, aquí se "inserta" el valor dentro del SQL
+WHERE LOWER(t.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+//                                              ↑
+//                                    Spring reemplaza esto
+//                                    con el valor real
+```
+
+---
+
+### 🧪 Ejemplo del reemplazo
+
+Cuando llamas el método así:
+
+```java
+repo.searchTransactions("laptop", pageable);
+```
+
+Spring internamente convierte el query a esto:
+
+```sql
+-- Lo que tú escribiste:
+LIKE LOWER(CONCAT('%', :searchText, '%'))
+
+-- Lo que Spring ejecuta realmente:
+LIKE LOWER(CONCAT('%', 'laptop', '%'))
+--  lo que resulta en →  '%laptop%'
+```
+
+---
+
+### 📦 El `@Param` es el conector
+
+```java
+                     // ① Nombre en el query       // ② Variable Java
+Page<Transaction> searchTransactions(@Param("searchText") String searchText)
+//                                         ↑                      ↑
+//                                   :searchText   ←←←←   recibe "laptop"
+//                                   en el SQL
+```
+
+El `@Param("searchText")` le dice a Spring:
+
+> *"El valor de la variable Java `searchText` va donde diga `:searchText` en el query"*
+
+---
+
+### 🚨 ¿Qué pasaría si mandas `null`?
+
+```java
+repo.searchTransactions(null, pageable);
+```
+
+Por eso existe esta parte del query:
+
+```sql
+WHERE (:searchText IS NULL   -- ← si es null, esta condición es TRUE
+OR                           --   y con OR, ya no evalúa las demás
+LOWER(t.description) LIKE ...
+```
+
+```
+null IS NULL → true
+   ↓
+El OR ya es true sin revisar nada más
+   ↓
+Trae TODAS las transacciones ✅
+```
+
+---
+
+### 🎯 Resumen simple
+
+```
+Usuario escribe → "laptop"
+        ↓
+String searchText = "laptop"    ← variable Java
+        ↓
+@Param("searchText")            ← conecta variable con query
+        ↓
+:searchText en el SQL           ← aquí se inserta "laptop"
+        ↓
+LIKE '%laptop%'                 ← busca en los 4 campos
+```
+
+Es básicamente como una **plantilla** donde `:searchText` es el espacio en blanco que se rellena con lo que el usuario escriba. 📝
+
+### 🔍 Cómo busca en 4 campos simultáneamente
+
+La clave está en el operador **`OR`**. SQL evalúa cada condición y si **cualquiera** es verdadera, incluye el registro.
+
+---
+
+### 🧠 Piénsalo como una compuerta lógica
+
+```
+¿"laptop" está en description?  →  ✅ SÍ  → INCLUIR fila
+¿"laptop" está en status?        →  ❌ NO  →   |
+¿"laptop" está en p.name?        →  ❌ NO  →   |
+¿"laptop" está en p.sku?         →  ❌ NO  →   |
+                                              ↓
+                                    Resultado: ✅ INCLUIDA
+                                    (basta con UN campo verdadero)
+```
+
+SQL no "para" cuando encuentra el primero — **evalúa los 4 siempre**, pero con que uno sea `true`, la fila entra.
+
+---
+
+### 📍 ¿Cómo busca en "cualquier posición"?
+
+Eso lo hace el patrón `'%texto%'`:
+
+```sql
+LOWER(t.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+--                                      ↑            ↑
+--                               % = cualquier    % = cualquier
+--                                 cosa ANTES       cosa DESPUÉS
+```
+
+El `%` es un **comodín** que significa *"cualquier cantidad de caracteres"*:
+
+```
+Buscas: "lap"
+
+'%lap%'  encuentra:
+  ✅  "lap"top nueva"        → lap al inicio
+  ✅  "Mi nueva lap"top"     → lap en el medio
+  ✅  "Compré un portátilap" → lap al final
+  ✅  "LAPTOP gaming"        → porque LOWER() lo convierte a "laptop"
+  ❌  "computadora"          → no contiene "lap" en ningún lado
+```
+
+---
+
+### 🔬 Disección completa del query
+
+```sql
+SELECT t FROM Transaction t        -- 1. Trae transacciones
+LEFT JOIN t.product p              -- 2. Une con su producto (si tiene)
+WHERE (
+    :searchText IS NULL            -- 3. Si no hay texto → trae TODO
+    OR
+    LOWER(t.description)           -- 4. Convierte description a minúsculas
+        LIKE                       --    y compara con el patrón
+        LOWER(CONCAT('%','lap','%'))  -- → '%lap%'
+    OR
+    LOWER(t.status)                -- 5. Mismo proceso con status
+        LIKE LOWER(CONCAT('%','lap','%'))
+    OR
+    LOWER(p.name)                  -- 6. Mismo proceso con nombre del producto
+        LIKE LOWER(CONCAT('%','lap','%'))
+    OR
+    LOWER(p.sku)                   -- 7. Mismo proceso con SKU del producto
+        LIKE LOWER(CONCAT('%','lap','%'))
+)
+```
+
+---
+
+### 🧪 Ejemplo con datos reales
+
+Imagina esta BD, buscas `"lap"`:
+
+```
+TRANSACTION table:
+┌────┬─────────────────────┬───────────┬────────────┐
+│ ID │ description         │ status    │ product_id │
+├────┼─────────────────────┼───────────┼────────────┤
+│  1 │ "Compra de laptop"  │ COMPLETED │     10     │ ✅ description contiene "lap"
+│  2 │ "Venta de mouse"    │ COMPLETED │     20     │ ❌ ningún campo coincide
+│  3 │ "Devolucion item"   │ COMPLETED │     30     │ ✅ product.name = "Laptop Dell"
+│  4 │ "Ajuste de stock"   │ COMPLETED │     40     │ ✅ product.sku = "LAP-001"
+└────┴─────────────────────┴───────────┴────────────┘
+
+PRODUCT table:
+┌────┬──────────────┬─────────┐
+│ ID │ name         │ sku     │
+├────┼──────────────┼─────────┤
+│ 10 │ "Mouse USB"  │ MS-001  │ (fila 1 ya entró por description)
+│ 20 │ "Teclado"    │ TEC-002 │ ❌
+│ 30 │ "Laptop Dell"│ DL-500  │ ✅ p.name contiene "lap"
+│ 40 │ "Monitor"    │ LAP-001 │ ✅ p.sku contiene "lap"
+└────┴──────────────┴─────────┘
+
+Resultado: filas 1, 3 y 4
+```
+
+---
+
+### ⚠️ El papel del `LEFT JOIN`
+
+```sql
+LEFT JOIN t.product p
+```
+
+Esto es importante porque significa:
+
+```
+Transaction SIN producto →  p.name = NULL, p.sku = NULL
+                            NULL LIKE '%lap%' = false  (no falla, solo no coincide)
+                            La transacción igual puede entrar por description o status
+```
+
+Si fuera `INNER JOIN`, las transacciones sin producto quedarían **excluidas** automáticamente aunque su `description` coincida.
+
+---
+
+### 💡 Resumen visual
+
+```
+searchText = "lap"
+       ↓
+   LOWER() → "lap"
+   CONCAT → '%lap%'
+       ↓
+┌─────────────────────────────────────────┐
+│  description LIKE '%lap%'  → true/false │
+│           OR                            │  → si alguno es true
+│  status LIKE '%lap%'       → true/false │     la fila SE INCLUYE
+│           OR                            │
+│  p.name LIKE '%lap%'       → true/false │
+│           OR                            │
+│  p.sku LIKE '%lap%'        → true/false │
+└─────────────────────────────────────────┘
+```
+
+La búsqueda es **inclusiva** — favorece mostrar resultados. Es el mismo concepto de cuando buscas en Google y coincide con cualquier palabra.
+
+
+---
+
+### ¿entonces cuando llame a ese repositorio se ejecutara esa 
+    query que he implementado yo manualmente ya que no lo ha hecho springboot sino que e smia?
+```
+🤖 Lo que Spring Boot hace AUTOMÁTICAMENTE
+``` 
+
+```java
+// Spring LEE el nombre del método y genera el SQL solo
+Page<Transaction> findByStatus(String status);
+//                    ↑
+//         Spring traduce esto a:
+//         SELECT * FROM transaction WHERE status = ?
+
+Page<Transaction> findByDescriptionContaining(String text);
+//                         ↑
+//         Spring traduce esto a:
+//         SELECT * FROM transaction WHERE description LIKE '%?%'
+```
+
+Spring analiza el nombre del método y **adivina** el SQL.
+
+---
+
+### ✍️ Lo que tú hiciste con `@Query`
+
+```java
+// Le dices a Spring: "OLVIDA el nombre del método,
+//                    ejecuta MI query"
+@Query("SELECT t FROM Transaction t " +
+        "LEFT JOIN t.product p " +
+        "WHERE (:searchText IS NULL OR " +
+        "LOWER(t.description) LIKE ...")
+Page<Transaction> searchTransactions(@Param("searchText") String searchText, Pageable pageable);
+//                ↑
+//    El nombre ya no importa, Spring ignora "searchTransactions"
+//    y ejecuta TU query del @Query
+```
+
+---
+
+### 🧠 La regla simple
+
+```
+Sin @Query  →  Spring genera el SQL leyendo el nombre del método
+Con @Query  →  Spring ejecuta TU SQL, el nombre del método da igual
+```
+
+---
+
+### 🧪 Prueba de que el nombre no importa
+
+```java
+// Estos dos métodos hacen EXACTAMENTE lo mismo
+// porque @Query manda sobre el nombre
+
+@Query("SELECT t FROM Transaction t WHERE ...")
+Page<Transaction> searchTransactions(...);
+
+@Query("SELECT t FROM Transaction t WHERE ...")
+Page<Transaction> miMetodoConNombreRaro(...);
+
+@Query("SELECT t FROM Transaction t WHERE ...")
+Page<Transaction> buscarCosas(...);
+// ↑ Los 3 ejecutan el mismo SQL tuyo ✅
+```
+
+---
+
+### 📦 Por eso usaste `@Query` y no el nombre automático
+
+Porque lo que querías hacer era **demasiado complejo** para que Spring lo genere solo:
+
+```java
+// ❌ Spring NO puede generar esto solo con el nombre:
+//    - LEFT JOIN con producto
+//    - Buscar en 4 campos distintos
+//    - LOWER() para ignorar mayúsculas
+//    - NULL check
+//    - Paginación sobre todo eso
+
+// ✅ Por eso tú lo escribiste manualmente con @Query
+```
+
+Básicamente le quitaste el trabajo a Spring y dijiste:
+
+> *"Yo sé exactamente qué query necesito, tú solo ejecútalo cuando llamen a este método"* 💪
 ---
 
 
