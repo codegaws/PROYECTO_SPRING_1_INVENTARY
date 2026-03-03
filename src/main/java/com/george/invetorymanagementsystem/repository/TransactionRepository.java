@@ -25,6 +25,4 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             "LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchText, '%')))")
     Page<Transaction> searchTransactions(@Param("searchText") String searchText, Pageable pageable);
 
-
-
 }
