@@ -1,4 +1,4 @@
-## 💡CLASE 10 SECURITY CONFIG</strong> </summary>
+## 💡CLASE 10 SECURITY CONFIG
 
 ### 🔒 Spring Boot Security: Explicación Detallada del Código `CustomUserDetailsService`
 
